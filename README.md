@@ -1,1 +1,1 @@
-# awesome-pizza
+# awesome-pizza-api
