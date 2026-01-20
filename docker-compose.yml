@@ -1,0 +1,17 @@
+# awesome-pizza-api/docker-compose.yml
+services:
+  db:
+    image: postgres:17
+    container_name: awesome-pizza-api-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: awesome-pizza
+      POSTGRES_PASSWORD: awesome-pizza
+      POSTGRES_DB: awesome-pizza
+    ports:
+      - "5437:5432"
+    volumes:
+      - awesome-pizza-db-data:/var/lib/postgresql/data
+
+volumes:
+  awesome-pizza-db-data:
