@@ -20,6 +20,9 @@ import com.awesomepizza.api.exception.InvalidOrderStateException;
 import com.awesomepizza.api.exception.NoOrdersInQueueException;
 import com.awesomepizza.api.exception.OrderNotFoundException;
 import com.awesomepizza.api.model.OrderStatus;
+import com.awesomepizza.api.security.CustomAccessDeniedHandler;
+import com.awesomepizza.api.security.CustomAuthenticationEntryPoint;
+import com.awesomepizza.api.security.SecurityConfig;
 import com.awesomepizza.api.service.OrderService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
@@ -30,15 +33,18 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(OrderController.class)
+@Import({SecurityConfig.class, CustomAuthenticationEntryPoint.class, CustomAccessDeniedHandler.class})
 @DisplayName("OrderController Tests")
 class OrderControllerTest {
 
@@ -53,6 +59,7 @@ class OrderControllerTest {
 
 	@Nested
 	@DisplayName("POST /api/orders")
+	@WithMockUser(roles = "CLIENTE")
 	class CreateOrderTests {
 
 		@Test
@@ -220,6 +227,7 @@ class OrderControllerTest {
 
 	@Nested
 	@DisplayName("GET /api/orders/{orderCode}")
+	@WithMockUser(roles = "CLIENTE")
 	class GetOrderTests {
 
 		@Test
@@ -269,6 +277,7 @@ class OrderControllerTest {
 
 	@Nested
 	@DisplayName("GET /api/orders/{orderCode}/status")
+	@WithMockUser(roles = "CLIENTE")
 	class GetOrderStatusTests {
 
 		@Test
@@ -305,6 +314,7 @@ class OrderControllerTest {
 
 	@Nested
 	@DisplayName("GET /api/orders/queue")
+	@WithMockUser(roles = "PIZZAIOLO")
 	class GetQueueTests {
 
 		@Test
@@ -363,6 +373,7 @@ class OrderControllerTest {
 
 	@Nested
 	@DisplayName("PUT /api/orders/next")
+	@WithMockUser(roles = "PIZZAIOLO")
 	class TakeNextOrderTests {
 
 		@Test
@@ -407,6 +418,7 @@ class OrderControllerTest {
 
 	@Nested
 	@DisplayName("PUT /api/orders/{orderCode}/complete")
+	@WithMockUser(roles = "PIZZAIOLO")
 	class CompleteOrderTests {
 
 		@Test
