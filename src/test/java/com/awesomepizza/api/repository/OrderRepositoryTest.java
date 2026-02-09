@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
 @DataJpaTest
@@ -110,12 +111,12 @@ class OrderRepositoryTest {
 	}
 
 	@Nested
-	@DisplayName("findByStatusWithItemsOrderByCreatedAtAsc")
-	class FindByStatusWithItemsOrderByCreatedAtAscTests {
+	@DisplayName("findIdsByStatusOrderByCreatedAtAsc")
+	class FindIdsByStatusOrderByCreatedAtAscTests {
 
 		@Test
-		@DisplayName("dovrebbe restituire ordini PENDING con items, ordinati per data creazione")
-		void shouldReturnPendingOrdersWithItemsOrderedByCreatedAt() {
+		@DisplayName("dovrebbe restituire gli ID degli ordini PENDING ordinati per data creazione")
+		void shouldReturnPendingOrderIdsOrderedByCreatedAt() {
 			// Given
 			String orderCode1 = UUID.randomUUID().toString();
 			String orderCode2 = UUID.randomUUID().toString();
@@ -125,44 +126,34 @@ class OrderRepositoryTest {
 					.status(OrderStatus.PENDING)
 					.createdAt(LocalDateTime.now().minusMinutes(30))
 					.build();
-			OrderItem item1 = OrderItem.builder().pizzaName("Margherita").quantity(2).build();
-			order1.addItem(item1);
-
 			Order order2 = Order.builder()
 					.orderCode(orderCode2)
 					.customerName("Secondo Cliente")
 					.status(OrderStatus.PENDING)
 					.createdAt(LocalDateTime.now().minusMinutes(10))
 					.build();
-			OrderItem item2 = OrderItem.builder().pizzaName("Diavola").quantity(1).build();
-			order2.addItem(item2);
 
-			orderRepository.save(order1);
-			orderRepository.save(order2);
+			Order saved1 = orderRepository.save(order1);
+			Order saved2 = orderRepository.save(order2);
 
 			// When
-			List<Order> orders = orderRepository.findByStatusWithItemsOrderByCreatedAtAsc(
+			Page<Long> idPage = orderRepository.findIdsByStatusOrderByCreatedAtAsc(
 					OrderStatus.PENDING, PageRequest.of(0, 100));
 
 			// Then
-			assertThat(orders).hasSize(2);
-			assertThat(orders.get(0).getOrderCode()).isEqualTo(orderCode1);
-			assertThat(orders.get(0).getItems()).hasSize(1);
-			assertThat(orders.get(0).getItems().get(0).getPizzaName()).isEqualTo("Margherita");
-			assertThat(orders.get(1).getOrderCode()).isEqualTo(orderCode2);
-			assertThat(orders.get(1).getItems()).hasSize(1);
-			assertThat(orders.get(1).getItems().get(0).getPizzaName()).isEqualTo("Diavola");
+			assertThat(idPage.getContent()).hasSize(2);
+			assertThat(idPage.getContent().get(0)).isEqualTo(saved1.getId());
+			assertThat(idPage.getContent().get(1)).isEqualTo(saved2.getId());
+			assertThat(idPage.getTotalElements()).isEqualTo(2);
 		}
 
 		@Test
 		@DisplayName("dovrebbe rispettare la paginazione")
 		void shouldRespectPagination() {
 			// Given
-			String[] orderCodes = new String[5];
 			for (int i = 0; i < 5; i++) {
-				orderCodes[i] = UUID.randomUUID().toString();
 				Order order = Order.builder()
-						.orderCode(orderCodes[i])
+						.orderCode(UUID.randomUUID().toString())
 						.customerName("Cliente " + (i + 1))
 						.status(OrderStatus.PENDING)
 						.createdAt(LocalDateTime.now().minusMinutes(60 - (i + 1) * 10))
@@ -171,61 +162,109 @@ class OrderRepositoryTest {
 			}
 
 			// When - richiesta con limite di 3 elementi
-			List<Order> orders = orderRepository.findByStatusWithItemsOrderByCreatedAtAsc(
+			Page<Long> idPage = orderRepository.findIdsByStatusOrderByCreatedAtAsc(
 					OrderStatus.PENDING, PageRequest.of(0, 3));
 
 			// Then
-			assertThat(orders).hasSize(3);
-			assertThat(orders.get(0).getOrderCode()).isEqualTo(orderCodes[0]);
-			assertThat(orders.get(2).getOrderCode()).isEqualTo(orderCodes[2]);
+			assertThat(idPage.getContent()).hasSize(3);
+			assertThat(idPage.getTotalElements()).isEqualTo(5);
+			assertThat(idPage.getTotalPages()).isEqualTo(2);
 		}
 
 		@Test
-		@DisplayName("dovrebbe restituire lista vuota quando non ci sono ordini con lo stato richiesto")
-		void shouldReturnEmptyListWhenNoOrdersWithRequestedStatus() {
+		@DisplayName("dovrebbe restituire pagina vuota quando non ci sono ordini con lo stato richiesto")
+		void shouldReturnEmptyPageWhenNoOrdersWithRequestedStatus() {
 			// Given
-			String orderCode = UUID.randomUUID().toString();
 			Order completedOrder = Order.builder()
-					.orderCode(orderCode)
+					.orderCode(UUID.randomUUID().toString())
 					.customerName("Cliente")
 					.status(OrderStatus.COMPLETED)
 					.build();
 			orderRepository.save(completedOrder);
 
 			// When
-			List<Order> orders = orderRepository.findByStatusWithItemsOrderByCreatedAtAsc(
+			Page<Long> idPage = orderRepository.findIdsByStatusOrderByCreatedAtAsc(
 					OrderStatus.PENDING, PageRequest.of(0, 100));
 
 			// Then
-			assertThat(orders).isEmpty();
+			assertThat(idPage.getContent()).isEmpty();
+			assertThat(idPage.getTotalElements()).isZero();
 		}
 
 		@Test
 		@DisplayName("dovrebbe filtrare solo ordini con lo stato specificato")
 		void shouldFilterOnlyOrdersWithSpecifiedStatus() {
 			// Given
-			String pendingOrderCode = UUID.randomUUID().toString();
-			String inProgressOrderCode = UUID.randomUUID().toString();
 			Order pendingOrder = Order.builder()
-					.orderCode(pendingOrderCode)
+					.orderCode(UUID.randomUUID().toString())
 					.customerName("Cliente Pending")
 					.status(OrderStatus.PENDING)
 					.build();
 			Order inProgressOrder = Order.builder()
-					.orderCode(inProgressOrderCode)
+					.orderCode(UUID.randomUUID().toString())
 					.customerName("Cliente In Progress")
 					.status(OrderStatus.IN_PROGRESS)
 					.build();
-			orderRepository.save(pendingOrder);
+			Order savedPending = orderRepository.save(pendingOrder);
 			orderRepository.save(inProgressOrder);
 
 			// When
-			List<Order> pendingOrders = orderRepository.findByStatusWithItemsOrderByCreatedAtAsc(
+			Page<Long> idPage = orderRepository.findIdsByStatusOrderByCreatedAtAsc(
 					OrderStatus.PENDING, PageRequest.of(0, 100));
 
 			// Then
-			assertThat(pendingOrders).hasSize(1);
-			assertThat(pendingOrders.get(0).getOrderCode()).isEqualTo(pendingOrderCode);
+			assertThat(idPage.getContent()).hasSize(1);
+			assertThat(idPage.getContent().get(0)).isEqualTo(savedPending.getId());
+		}
+	}
+
+	@Nested
+	@DisplayName("findByIdsWithItems")
+	class FindByIdsWithItemsTests {
+
+		@Test
+		@DisplayName("dovrebbe restituire ordini con items dato un elenco di ID")
+		void shouldReturnOrdersWithItemsByIds() {
+			// Given
+			Order order1 = Order.builder()
+					.orderCode(UUID.randomUUID().toString())
+					.customerName("Primo Cliente")
+					.status(OrderStatus.PENDING)
+					.build();
+			OrderItem item1 = OrderItem.builder().pizzaName("Margherita").quantity(2).build();
+			order1.addItem(item1);
+
+			Order order2 = Order.builder()
+					.orderCode(UUID.randomUUID().toString())
+					.customerName("Secondo Cliente")
+					.status(OrderStatus.PENDING)
+					.build();
+			OrderItem item2 = OrderItem.builder().pizzaName("Diavola").quantity(1).build();
+			order2.addItem(item2);
+
+			Order saved1 = orderRepository.save(order1);
+			Order saved2 = orderRepository.save(order2);
+
+			// When
+			List<Order> orders = orderRepository.findByIdsWithItems(
+					List.of(saved1.getId(), saved2.getId()));
+
+			// Then
+			assertThat(orders).hasSize(2);
+			assertThat(orders.get(0).getItems()).hasSize(1);
+			assertThat(orders.get(0).getItems().get(0).getPizzaName()).isEqualTo("Margherita");
+			assertThat(orders.get(1).getItems()).hasSize(1);
+			assertThat(orders.get(1).getItems().get(0).getPizzaName()).isEqualTo("Diavola");
+		}
+
+		@Test
+		@DisplayName("dovrebbe restituire lista vuota per ID inesistenti")
+		void shouldReturnEmptyListForNonExistentIds() {
+			// When
+			List<Order> orders = orderRepository.findByIdsWithItems(List.of(999L, 998L));
+
+			// Then
+			assertThat(orders).isEmpty();
 		}
 	}
 

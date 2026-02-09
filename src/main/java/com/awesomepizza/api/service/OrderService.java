@@ -16,7 +16,9 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,8 +29,6 @@ public class OrderService {
 
 	private final OrderRepository orderRepository;
 	private final OrderMapper orderMapper;
-
-	private static final int MAX_QUEUE_SIZE = 100;
 
 	/**
 	 * Crea un nuovo ordine a partire dalla richiesta del cliente.
@@ -77,16 +77,26 @@ public class OrderService {
 
 	/**
 	 * Restituisce la coda degli ordini in stato PENDING, ordinati per data creazione (FIFO).
-	 * Limitata a MAX_QUEUE_SIZE ordini per evitare problemi di performance.
 	 */
 	@Transactional(readOnly = true)
-	public List<OrderResponse> getOrderQueue() {
-		List<Order> queue = orderRepository.findByStatusWithItemsOrderByCreatedAtAsc(
-				OrderStatus.PENDING, PageRequest.of(0, MAX_QUEUE_SIZE));
-		log.debug("Coda ordini richiesta, {} ordini in coda", queue.size());
-		return queue.stream()
+	public Page<OrderResponse> getOrderQueue(Pageable pageable) {
+		Page<Long> orderIds = orderRepository.findIdsByStatusOrderByCreatedAtAsc(
+				OrderStatus.PENDING, pageable);
+
+		if (orderIds.isEmpty()) {
+			return Page.empty(pageable);
+		}
+
+		List<Order> orders = orderRepository.findByIdsWithItems(orderIds.getContent());
+
+		List<OrderResponse> responses = orders.stream()
 				.map(orderMapper::toOrderResponse)
 				.toList();
+
+		log.debug("Coda ordini richiesta, pagina {}/{}, {} ordini",
+				pageable.getPageNumber(), orderIds.getTotalPages(), responses.size());
+
+		return new PageImpl<>(responses, pageable, orderIds.getTotalElements());
 	}
 
 	/**

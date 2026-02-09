@@ -5,8 +5,9 @@ import com.awesomepizza.api.dto.OrderResponse;
 import com.awesomepizza.api.dto.OrderStatusResponse;
 import com.awesomepizza.api.service.OrderService;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -59,8 +60,8 @@ public class OrderController {
 	 * GET /api/orders/queue
 	 */
 	@GetMapping("/queue")
-	public ResponseEntity<List<OrderResponse>> getOrderQueue() {
-		List<OrderResponse> queue = orderService.getOrderQueue();
+	public ResponseEntity<Page<OrderResponse>> getOrderQueue(Pageable pageable) {
+		Page<OrderResponse> queue = orderService.getOrderQueue(pageable);
 		return ResponseEntity.ok(queue);
 	}
 

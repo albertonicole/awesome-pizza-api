@@ -23,7 +23,6 @@ import com.awesomepizza.api.model.OrderStatus;
 import com.awesomepizza.api.service.OrderService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +30,10 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -305,14 +308,14 @@ class OrderControllerTest {
 	class GetQueueTests {
 
 		@Test
-		@DisplayName("dovrebbe restituire la coda degli ordini")
-		void shouldReturnOrderQueue() throws Exception {
+		@DisplayName("dovrebbe restituire la coda degli ordini paginata")
+		void shouldReturnOrderQueuePage() throws Exception {
 			// Given
 			String orderCode1 = UUID.randomUUID().toString();
 			String orderCode2 = UUID.randomUUID().toString();
 			LocalDateTime createdAt1 = LocalDateTime.of(2026, 2, 3, 10, 0, 0);
 			LocalDateTime createdAt2 = LocalDateTime.of(2026, 2, 3, 10, 30, 0);
-			List<OrderResponse> queue = List.of(
+			List<OrderResponse> content = List.of(
 					OrderResponse.builder()
 							.orderCode(orderCode1)
 							.customerName("Primo")
@@ -329,27 +332,32 @@ class OrderControllerTest {
 							.items(List.of())
 							.build()
 			);
+			Page<OrderResponse> page = new PageImpl<>(content, PageRequest.of(0, 20), 2);
 
-			when(orderService.getOrderQueue()).thenReturn(queue);
+			when(orderService.getOrderQueue(any(Pageable.class))).thenReturn(page);
 
 			// When/Then
-			mockMvc.perform(get("/api/orders/queue"))
+			mockMvc.perform(get("/api/orders/queue").param("page", "0").param("size", "20"))
 					.andExpect(status().isOk())
-					.andExpect(jsonPath("$", hasSize(2)))
-					.andExpect(jsonPath("$[0].orderCode", is(orderCode1)))
-					.andExpect(jsonPath("$[1].orderCode", is(orderCode2)));
+					.andExpect(jsonPath("$.content", hasSize(2)))
+					.andExpect(jsonPath("$.content[0].orderCode", is(orderCode1)))
+					.andExpect(jsonPath("$.content[1].orderCode", is(orderCode2)))
+					.andExpect(jsonPath("$.totalElements", is(2)))
+					.andExpect(jsonPath("$.totalPages", is(1)));
 		}
 
 		@Test
-		@DisplayName("dovrebbe restituire una lista vuota quando la coda è vuota")
-		void shouldReturnEmptyQueue() throws Exception {
+		@DisplayName("dovrebbe restituire una pagina vuota quando la coda è vuota")
+		void shouldReturnEmptyPage() throws Exception {
 			// Given
-			when(orderService.getOrderQueue()).thenReturn(Collections.emptyList());
+			when(orderService.getOrderQueue(any(Pageable.class)))
+					.thenReturn(Page.empty(PageRequest.of(0, 20)));
 
 			// When/Then
 			mockMvc.perform(get("/api/orders/queue"))
 					.andExpect(status().isOk())
-					.andExpect(jsonPath("$", hasSize(0)));
+					.andExpect(jsonPath("$.content", hasSize(0)))
+					.andExpect(jsonPath("$.totalElements", is(0)));
 		}
 	}
 

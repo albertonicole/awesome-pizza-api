@@ -21,7 +21,6 @@ import com.awesomepizza.api.mapper.OrderMapper;
 import com.awesomepizza.api.model.Order;
 import com.awesomepizza.api.model.OrderStatus;
 import com.awesomepizza.api.repository.OrderRepository;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,6 +34,9 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
@@ -238,48 +240,47 @@ class OrderServiceTest {
 	class GetOrderQueueTests {
 
 		@Test
-		@DisplayName("dovrebbe restituire la lista degli ordini PENDING mappati")
-		void shouldReturnMappedPendingOrders() {
+		@DisplayName("dovrebbe restituire una pagina di ordini PENDING")
+		void shouldReturnPagedPendingOrders() {
 			// Given
-			Order order1 = Order.builder().orderCode("order-1").status(OrderStatus.PENDING).build();
-			Order order2 = Order.builder().orderCode("order-2").status(OrderStatus.PENDING).build();
+			Pageable pageable = PageRequest.of(0, 20);
+			Order order1 = Order.builder().id(1L).orderCode("order-1").status(OrderStatus.PENDING).build();
+			Order order2 = Order.builder().id(2L).orderCode("order-2").status(OrderStatus.PENDING).build();
 			OrderResponse response1 = OrderResponse.builder().orderCode("order-1").status(OrderStatus.PENDING).build();
 			OrderResponse response2 = OrderResponse.builder().orderCode("order-2").status(OrderStatus.PENDING).build();
 
-			when(orderRepository.findByStatusWithItemsOrderByCreatedAtAsc(
-					eq(OrderStatus.PENDING),
-					argThat(pageable -> pageable.getPageNumber() == 0 && pageable.getPageSize() == 100)))
+			Page<Long> idPage = new PageImpl<>(List.of(1L, 2L), pageable, 2);
+			when(orderRepository.findIdsByStatusOrderByCreatedAtAsc(OrderStatus.PENDING, pageable))
+					.thenReturn(idPage);
+			when(orderRepository.findByIdsWithItems(List.of(1L, 2L)))
 					.thenReturn(List.of(order1, order2));
 			when(orderMapper.toOrderResponse(order1)).thenReturn(response1);
 			when(orderMapper.toOrderResponse(order2)).thenReturn(response2);
 
 			// When
-			List<OrderResponse> queue = orderService.getOrderQueue();
+			Page<OrderResponse> result = orderService.getOrderQueue(pageable);
 
 			// Then
-			assertThat(queue).hasSize(2);
-			assertThat(queue.get(0).getOrderCode()).isEqualTo("order-1");
-			assertThat(queue.get(1).getOrderCode()).isEqualTo("order-2");
-			verify(orderRepository).findByStatusWithItemsOrderByCreatedAtAsc(
-					eq(OrderStatus.PENDING),
-					argThat(pageable -> pageable.getPageNumber() == 0 && pageable.getPageSize() == 100));
+			assertThat(result.getContent()).hasSize(2);
+			assertThat(result.getTotalElements()).isEqualTo(2);
+			assertThat(result.getContent().get(0).getOrderCode()).isEqualTo("order-1");
 		}
 
 		@Test
-		@DisplayName("dovrebbe restituire lista vuota quando non ci sono ordini")
-		void shouldReturnEmptyListWhenNoOrders() {
+		@DisplayName("dovrebbe restituire pagina vuota quando non ci sono ordini")
+		void shouldReturnEmptyPageWhenNoOrders() {
 			// Given
-			when(orderRepository.findByStatusWithItemsOrderByCreatedAtAsc(
-					eq(OrderStatus.PENDING), any(Pageable.class)))
-					.thenReturn(Collections.emptyList());
+			Pageable pageable = PageRequest.of(0, 20);
+			when(orderRepository.findIdsByStatusOrderByCreatedAtAsc(OrderStatus.PENDING, pageable))
+					.thenReturn(Page.empty(pageable));
 
 			// When
-			List<OrderResponse> queue = orderService.getOrderQueue();
+			Page<OrderResponse> result = orderService.getOrderQueue(pageable);
 
 			// Then
-			assertThat(queue).isEmpty();
-			verify(orderRepository).findByStatusWithItemsOrderByCreatedAtAsc(
-					eq(OrderStatus.PENDING), any(Pageable.class));
+			assertThat(result.getContent()).isEmpty();
+			assertThat(result.getTotalElements()).isZero();
+			verify(orderRepository, never()).findByIdsWithItems(any());
 		}
 	}
 
