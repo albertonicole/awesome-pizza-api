@@ -176,6 +176,27 @@ class OrderControllerTest {
 		}
 
 		@Test
+		@DisplayName("dovrebbe restituire 400 se ci sono pizze duplicate")
+		void shouldReturn400WhenDuplicatePizzaNames() throws Exception {
+			// Given
+			CreateOrderRequest request = CreateOrderRequest.builder()
+					.customerName("Mario Rossi")
+					.items(List.of(
+							OrderItemRequest.builder().pizzaName("Margherita").quantity(2).build(),
+							OrderItemRequest.builder().pizzaName("Margherita").quantity(3).build()
+					))
+					.build();
+
+			// When/Then
+			mockMvc.perform(post("/api/orders")
+							.contentType(MediaType.APPLICATION_JSON)
+							.content(objectMapper.writeValueAsString(request)))
+					.andExpect(status().isBadRequest())
+					.andExpect(jsonPath("$.message").exists())
+					.andExpect(jsonPath("$.status").value(400));
+		}
+
+		@Test
 		@DisplayName("dovrebbe restituire 400 se la quantità supera 100")
 		void shouldReturn400WhenQuantityExceeds100() throws Exception {
 			// Given
