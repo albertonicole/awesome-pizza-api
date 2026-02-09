@@ -50,7 +50,7 @@ class OrderServiceTest {
 	private OrderMapper orderMapper;
 
 	@InjectMocks
-	private OrderService orderService;
+	private OrderServiceImpl orderService;
 
 	@Captor
 	private ArgumentCaptor<Order> orderCaptor;
