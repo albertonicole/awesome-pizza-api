@@ -131,16 +131,20 @@ public class OrderService {
 		Order order = orderRepository.findByOrderCodeWithLock(orderCode)
 				.orElseThrow(() -> new OrderNotFoundException(orderCode));
 
-		if (!order.getStatus().equals(OrderStatus.IN_PROGRESS)) {
-			log.warn("Tentativo di completare ordine {} con stato {}", orderCode, order.getStatus());
-			throw new InvalidOrderStateException(
-					"L'ordine deve essere " + OrderStatus.IN_PROGRESS + " per essere completato. Stato attuale: " + order.getStatus());
-		}
+		validateOrderInProgress(orderCode, order);
 
 		order.setStatus(OrderStatus.COMPLETED);
 		Order savedOrder = orderRepository.save(order);
 		log.info("Ordine {} completato ({} -> {})", savedOrder.getOrderCode(), OrderStatus.IN_PROGRESS, OrderStatus.COMPLETED);
 		return orderMapper.toOrderResponse(savedOrder);
+	}
+
+	private static void validateOrderInProgress(String orderCode, Order order) {
+		if (!order.getStatus().equals(OrderStatus.IN_PROGRESS)) {
+			log.warn("Tentativo di completare ordine {} con stato {}", orderCode, order.getStatus());
+			throw new InvalidOrderStateException(
+					"L'ordine deve essere " + OrderStatus.IN_PROGRESS + " per essere completato. Stato attuale: " + order.getStatus());
+		}
 	}
 
 	/**
