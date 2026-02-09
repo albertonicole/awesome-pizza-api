@@ -354,7 +354,7 @@ class OrderControllerTest {
 			when(orderService.takeNextOrder()).thenReturn(response);
 
 			// When/Then
-			mockMvc.perform(put("/api/orders/next"))
+			mockMvc.perform(post("/api/orders/next"))
 					.andExpect(status().isOk())
 					.andExpect(jsonPath("$.orderCode", is(orderCode)))
 					.andExpect(jsonPath("$.customerName", is("Cliente")))
@@ -365,14 +365,14 @@ class OrderControllerTest {
 		}
 
 		@Test
-		@DisplayName("dovrebbe restituire 204 se la coda è vuota")
-		void shouldReturn204WhenQueueIsEmpty() throws Exception {
+		@DisplayName("dovrebbe restituire 404 se la coda è vuota")
+		void shouldReturn404WhenQueueIsEmpty() throws Exception {
 			// Given
 			when(orderService.takeNextOrder()).thenThrow(new NoOrdersInQueueException());
 
 			// When/Then
-			mockMvc.perform(put("/api/orders/next"))
-					.andExpect(status().isNoContent());
+			mockMvc.perform(post("/api/orders/next"))
+					.andExpect(status().isNotFound());
 		}
 	}
 

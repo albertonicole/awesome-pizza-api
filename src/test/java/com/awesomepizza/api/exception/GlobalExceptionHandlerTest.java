@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.awesomepizza.api.dto.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -63,14 +64,14 @@ class GlobalExceptionHandlerTest {
 	class NoOrdersInQueueExceptionTests {
 
 		@Test
-		@DisplayName("dovrebbe restituire 204 No Content quando la coda è vuota")
-		void shouldReturn204NoContentWhenQueueIsEmpty() throws Exception {
+		@DisplayName("dovrebbe restituire 404 Not Found quando la coda è vuota")
+		void shouldReturn404NoContentWhenQueueIsEmpty() throws Exception {
 			// Given - assicurarsi che non ci siano ordini PENDING nella coda
 			// Il test è @Transactional quindi il DB è pulito
 
 			// When/Then
-			mockMvc.perform(put("/api/orders/next"))
-					.andExpect(status().isNoContent());
+			mockMvc.perform(post("/api/orders/next"))
+					.andExpect(status().isNotFound());
 		}
 	}
 
@@ -100,11 +101,11 @@ class GlobalExceptionHandlerTest {
 					.andExpect(status().isCreated());
 
 			// Prende il primo ordine (IN_PROGRESS)
-			mockMvc.perform(put("/api/orders/next"))
+			mockMvc.perform(post("/api/orders/next"))
 					.andExpect(status().isOk());
 
 			// When - prova a prendere un altro ordine mentre uno è già in lavorazione
-			MvcResult result = mockMvc.perform(put("/api/orders/next"))
+			MvcResult result = mockMvc.perform(post("/api/orders/next"))
 					.andExpect(status().isConflict())
 					.andExpect(jsonPath("$.status").value(HttpStatus.CONFLICT.value()))
 					.andExpect(jsonPath("$.message").exists())

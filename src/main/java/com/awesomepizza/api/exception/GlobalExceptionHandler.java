@@ -1,5 +1,6 @@
 package com.awesomepizza.api.exception;
 
+import com.awesomepizza.api.dto.ErrorResponse;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -27,10 +28,10 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(NoOrdersInQueueException.class)
 	public ResponseEntity<ErrorResponse> handleNoOrdersInQueue(NoOrdersInQueueException ex) {
 		log.info("Coda ordini vuota: {}", ex.getMessage());
-		return ResponseEntity.status(HttpStatus.NO_CONTENT)
+		return ResponseEntity.status(HttpStatus.NOT_FOUND)
 				.body(ErrorResponse.builder()
 						.message("Coda ordini vuota")
-						.status(HttpStatus.NO_CONTENT.value())
+						.status(HttpStatus.NOT_FOUND.value())
 						.build());
 	}
 

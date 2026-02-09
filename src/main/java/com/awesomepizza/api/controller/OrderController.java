@@ -66,9 +66,9 @@ public class OrderController {
 
 	/**
 	 * Prende in carico il prossimo ordine in coda.
-	 * PUT /api/orders/next
+	 * POST /api/orders/next
 	 */
-	@PutMapping("/next")
+	@PostMapping("/next")
 	public ResponseEntity<OrderResponse> takeNextOrder() {
 		OrderResponse response = orderService.takeNextOrder();
 		return ResponseEntity.ok(response);

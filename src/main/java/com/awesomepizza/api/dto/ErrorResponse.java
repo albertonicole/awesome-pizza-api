@@ -1,4 +1,4 @@
-package com.awesomepizza.api.exception;
+package com.awesomepizza.api.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

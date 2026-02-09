@@ -112,7 +112,7 @@ public class OrderService {
 		// STEP 3: Sicuri di essere l'unico, procediamo
 		order.setStatus(OrderStatus.IN_PROGRESS);
 		Order savedOrder = orderRepository.save(order);
-		log.info("Ordine {} preso in carico ({} -> {})", savedOrder.getOrderCode(), OrderStatus.PENDING, OrderStatus.COMPLETED);
+		log.info("Ordine {} preso in carico ({} -> {})", savedOrder.getOrderCode(), OrderStatus.PENDING, OrderStatus.IN_PROGRESS);
 		return orderMapper.toOrderResponse(savedOrder);
 	}
 

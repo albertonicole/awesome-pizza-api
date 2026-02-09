@@ -27,7 +27,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 	 */
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@QueryHints({
-			@QueryHint(name = "javax.persistence.lock.timeout", value = "3000")
+			@QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000")
 	})
 	@Query("SELECT o FROM Order o WHERE o.orderCode = :orderCode")
 	Optional<Order> findByOrderCodeWithLock(@Param("orderCode") String orderCode);
@@ -43,7 +43,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 	 */
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@QueryHints({
-			@QueryHint(name = "javax.persistence.lock.timeout", value = "3000")
+			@QueryHint(name = "jakarta.persistence.lock.timeout", value = "3000")
 	})
 	Optional<Order> findFirstByStatusOrderByCreatedAtAsc(OrderStatus status);
 

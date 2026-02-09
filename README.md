@@ -166,7 +166,7 @@ Consultare lo Swagger UI per la documentazione interattiva degli endpoint access
 │     (es: 550e8400-e29b-41d4)                                                          │
 │                                                                                 │
 │  4. Controlla stato                         3. Prende ordine                    │
-│     GET /api/orders/{code}/status              PUT /api/orders/next             │
+│     GET /api/orders/{code}/status              POST /api/orders/next            │
 │     ↓                                          ↓                                │
 │     Vede: IN_PROGRESS                          Ordine diventa IN_PROGRESS       │
 │                                                                                 │
@@ -192,7 +192,7 @@ Un solo ordine **IN_PROGRESS** può esistere in qualsiasi momento.
 
 ### Problema
 
-Senza protezione, due chiamate concorrenti a `PUT /api/orders/next` potrebbero mettere in stato IN_PROGRESS due ordini diversi contemporaneamente.
+Senza protezione, due chiamate concorrenti a `POST /api/orders/next` potrebbero mettere in stato IN_PROGRESS due ordini diversi contemporaneamente.
 
 ```
 Thread A: Check IN_PROGRESS → vuoto ✓

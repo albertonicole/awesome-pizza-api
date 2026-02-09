@@ -19,6 +19,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.NaturalId;
 
 @Entity
 @Table(name = "orders")
@@ -33,6 +34,7 @@ public class Order {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
+	@NaturalId
 	@Column(nullable = false, unique = true)
 	private String orderCode;
 
@@ -62,12 +64,12 @@ public class Order {
 		if (this == o) return true;
 		if (o == null || getClass() != o.getClass()) return false;
 		Order order = (Order) o;
-		return id != null && Objects.equals(id, order.id);
+		return id != null && Objects.equals(getOrderCode(), order.getOrderCode());
 	}
 
 	@Override
 	public int hashCode() {
-		return 31;
+		return Objects.hash(getOrderCode());
 	}
 
 	@Override
